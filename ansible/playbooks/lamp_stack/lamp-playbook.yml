@@ -1,0 +1,9 @@
+---
+- name: Install LAMP stack on Ubuntu
+  hosts: webservers
+  become: yes
+  roles:
+    - geerlingguy.apache
+    - geerlingguy.mysql
+    - geerlingguy.php
+
