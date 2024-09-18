@@ -1,0 +1,19 @@
+route:
+    - receiver: smtp
+    - receiver: rocketchat 
+    group_by: [Alertname]
+receivers:
+    - name: smtp
+      email_configs:
+      - smarthost: smtp.gmail.com:587 
+        to: miky@visibleone.com
+        from: "visibleone.miky@gmail.com"
+        auth_username: "visibleone.miky@gmail.com"
+        auth_identity: "visibleone.miky@gmail.com"
+        auth_password: "mpzv oitu hirz xsrw"
+        send_resolved: true
+    - name: rocketchat
+      webhook_configs:
+      - send_resolved: true
+        url: 'https://project.visibleone.com/hooks/65374db5a5a452ee53076687/zd9jHYAWeqLNfANytub7dL2dvo5twJ2ApLWnDR6n8WDirjdY'
+

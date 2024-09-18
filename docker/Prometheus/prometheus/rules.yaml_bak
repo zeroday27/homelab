@@ -1,0 +1,50 @@
+groups:
+  - name: custom_rules
+    rules:
+      - record: node_memory_MemFree_percent
+        expr: 100 - (100 * node_memory_MemFree_bytes / node_memory_MemTotal_bytes)
+
+      - record: node_filesystem_free_percent
+        expr: 100 - (100 * node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})
+      
+  - name: Node
+    rules:
+      - alert: NodeDown
+        expr: up == 0
+        for: 1m
+        labels:
+            severity: critical
+        annotations:
+           message: " {{.Labels.instance}} is down"
+
+      - alert: Node memory less than 10 percent 
+        expr: node_memory_MemFree_percent <= 10
+        labels:
+          severity: warning
+        annotations:
+          summary: "Instance [{{ $labels.instance }}] has 10% or less Free disk space"
+          description: "[{{ $labels.instance }}] has only {{ $value }}% or less free."
+
+      - alert: LowDiskSpace 
+        expr: 100 * node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 10 
+        labels:
+          severity: warning
+        annotations:
+          summary: "Instance [{{ $labels.instance }}] has 10% or less Free disk space"
+          description: "[{{ $labels.instance }}] has only {{ $value }}% or less free."
+
+      - alert: High CPU Usage
+        expr: avg(irate(node_cpu_seconds_total{mode="idle"}[1m]) * 100) < 50 
+        for: 1m
+        annotations:
+          summary: "High  CPU usage on {{ $labels.instance }}"
+          description: "{{ $labels.instance }} has a average CPU idle (current value: {{ $value }}s)"
+            
+      - alert: SSLCertExpiringSoon 
+        expr: probe_ssl_earliest_cert_expiry{job="Website Monitoring"} - time() < 86400 * 60 
+        labels:
+          serverity: warning
+        for: 10m
+        annotations:
+          summary: "SSL for {{ $labels.instance }} is expiring"
+          description: "{{ $labels.instance }}'s SSL will expire soon"

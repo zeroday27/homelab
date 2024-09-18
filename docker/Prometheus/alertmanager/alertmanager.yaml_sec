@@ -1,0 +1,53 @@
+# alertmanager.yml
+
+route:
+  # When a new group of alerts is created by an incoming alert, wait at
+  # least 'group_wait' to send the initial notification.
+  # This way ensures that you get multiple alerts for the same group that start
+  # firing shortly after another are batched together on the first
+  # notification.
+  group_wait: 10s
+
+  # When the first notification was sent, wait 'group_interval' to send a batch
+  # of new alerts that started firing for that group.
+  group_interval: 30s
+
+  group_by:
+    - 'alertname'
+    - 'domain'
+  # If an alert has successfully been sent, wait 'repeat_interval' to
+  # resend them.
+  repeat_interval: 30m
+
+  # A default receiver
+  receiver: "rocketchat"
+
+  # All the above attributes are inherited by all child routes and can
+  # overwritten on each.
+  routes:
+    - receiver: "smtp"
+      group_wait: 10s
+      match_re:
+        severity: critical|warning
+      continue: true
+
+    - receiver: "rocketchat"
+      group_wait: 10s
+      match_re:
+        severity: critical|warning
+      continue: true
+
+receivers:
+  - name: "smtp"
+    email_configs:
+    - smarthost: smtp.gmail.com:587
+      to: miky@visibleone.com
+      from: "visibleone.miky@gmail.com"
+      auth_username: "visibleone.miky@gmail.com"
+      auth_identity: "visibleone.miky@gmail.com"
+      auth_password: "mpzv oitu hirz xsrw"
+      send_resolved: true
+  - name: "rocketchat"
+    webhook_configs:
+      - url: 'https://project.visibleone.com/hooks/65374db5a5a452ee53076687/zd9jHYAWeqLNfANytub7dL2dvo5twJ2ApLWnDR6n8WDirjdY'
+        send_resolved: true

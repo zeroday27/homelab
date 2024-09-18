@@ -1,0 +1,8 @@
+version: "3"
+services:
+  chatgpt:
+    image: ghcr.io/mckaywrigley/chatbot-ui:main
+    ports:
+      - "4000:3000"
+    environment:
+    - OPENAI_API_KEY=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

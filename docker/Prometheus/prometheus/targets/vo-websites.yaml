@@ -1,0 +1,26 @@
+- targets:
+  - https://101host.visibleone.net:2087
+  - https://202host.visibleone.net
+  - https://253host.visibleone.net
+  - https://501host.visibleone.net
+  - https://api.visibleone.com
+  - https://dashboard.visibleone.io
+  - https://dev-api.shopinone.net
+  - https://dev-cms.shopinone.net
+  - https://devwhmcs.visibleone.io
+  - https://gitlab.visibleone.io
+  - https://jira.visibleone.io
+  - https://portal.visibleone.com
+  - https://proxmox-my.visibleone.app
+  - https://project.visibleone.com
+  - https://shopinone.net
+  - https://staging-api.shopinone.net
+  - https://staging-api.shopinone.net
+  - https://vorp.visibleone.com
+  - https://vorpapi.visibleone.com
+  - https://visiblecctv.com
+  - https://visibleone.com
+  - https://visibleone.io
+  - https://visibleone.net
+  - https://wazuh.visibleone.io
+  - https://360visibletour.com

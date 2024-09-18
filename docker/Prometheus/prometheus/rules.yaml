@@ -1,0 +1,138 @@
+groups:
+  - name: custom_rules
+    rules:
+      - record: node_memory_MemFree_percent
+        expr: 100 - (100 * node_memory_MemFree_bytes / node_memory_MemTotal_bytes)
+
+      - record: node_filesystem_free_percent
+        expr: 100 - (100 * node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})
+
+      - record: node_down
+        expr: up{job="vo-servers"}==0 or up{job="vo-managed-cloud"}==0 or up{job="client-managed-cloud"}==0
+
+      - record: node_cpu_high_critical
+        expr: (sum by (instance) (avg by (mode, instance) (rate(node_cpu_seconds_total{mode!="idle"}[5m]))) > 0.9) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+
+      - record: node_cpu_high_warning
+        expr: ( 0.9 > sum by (instance) (avg by (mode, instance) (rate(node_cpu_seconds_total{mode!="idle"}[5m]))) > 0.8) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+
+  - name: Alerts
+    rules:
+      - alert: HostDown
+        expr: node_down
+        for: 1m
+        labels:
+            severity: 'critical'
+            type: server
+        annotations:
+           message: " {{.Labels.instance}} is down"
+
+      - alert: HostOutOfMemory
+        expr: (10 > node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 < 20) 
+        for: 10m
+        labels:
+          severity: warning
+          type: server
+        annotations:
+          summary: Host out of memory (instance {{ $labels.instance }})
+          description: "Node memory is filling up (less than 20%)\n  value = {{ $value }}"
+ 
+      - alert: HostHighCpuLoad
+        expr: node_cpu_high_warning
+        for: 10m
+        labels:
+          severity: warning
+          type: server
+        annotations:
+          summary: Host high CPU load (instance {{ $labels.instance }})
+          description: "CPU load is over 80%\n  value = {{ $value }}"
+
+      - alert: HostHighCpuLoad
+        expr: node_cpu_high_critical
+        for: 10m
+        labels:
+          severity: critical
+          type: server
+        annotations:
+          summary: Host high CPU load (instance {{ $labels.instance }})
+          description: "CPU load is over 90%\n  value = {{ $value }}"
+
+      - alert: WebsiteUnavailable
+        expr: probe_http_status_code <= 199 OR probe_http_status_code >= 400 
+        for: 5m
+        labels: 
+          serverity: critical
+          type: website 
+        annotations:
+          message: "HTTP probe failed (instance {{ $labels.instance }})"
+          description: "HTTP status code is not 200-399\n  status_code = {{ $value }}"
+
+      - alert: HostOutOfDiskSpace
+        expr: 10 < 100 * node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 20
+        for: 1h
+        labels:
+          severity: warning
+          type: server
+        annotations:
+          summary: Host out of disk space (instance {{ $labels.instance }})
+          description: "Root partition is almost full (less than 20%)\n value = {{ $value }}"
+
+      - alert: HostOutOfDiskSpace
+        expr: 0 < 100 * node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 10
+        for: 1h
+        labels:
+          severity: critical
+          type: server
+        annotations:
+          summary: Host out of disk space (instance {{ $labels.instance }})
+          description: "Root partition is almost full (less than 10%)\n value = {{ $value }}" 
+
+      - alert: SSL_Expiry
+        expr: 0 < round((last_over_time(probe_ssl_earliest_cert_expiry[10m]) - time()) / 86400, 0.1) < 7
+        for: 1h
+        labels:
+          severity: warning
+          type: ssl
+        annotations:
+          summary: SSL certificate will expire soon (instance - {{ $labels.instance }})
+          description: "SSL certificate expires in {{ $value }} days"
+
+      - alert: SSL_Expired
+        expr: round((last_over_time(probe_ssl_earliest_cert_expiry[10m]) - time()) / 86400, 0.1) < 0 
+        for: 1m
+        labels:
+          severity: critical 
+          type: ssl
+        annotations:
+          summary: SSL certificate was expired (instance - {{ $labels.instance }})
+
+      - alert: DomainExpiring
+        expr: 0 < domain_expiry_days < 30 
+        for: 1h
+        labels: 
+          serverity: warning
+          type: domain
+        annotations:
+          description: 'Domain: {{ $labels.domain }} will expire in {{ $value }} days.'
+
+#Host network interfaces are probably sending too much data (> 10 GB/s)
+      - alert: HostUnusualNetworkThroughputIn
+        expr: (sum by (instance) (rate(node_network_receive_bytes_total[24h])) / 1024 / 1024 / 1024 > 10) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 5m
+        labels:
+          severity: critical 
+          type: server
+        annotations:
+          summary: Host unusual network throughput in (instance {{ $labels.instance }})
+          description: "Host network interfaces are probably receiving too much data (> 10 GB/day)\n  received_bytes = {{ $value }}"
+
+      - alert: HostUnusualNetworkThroughputOut
+        expr: (sum by (instance) (rate(node_network_transmit_bytes_total[24h])) / 1024 / 1024 / 1024 > 10) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+        for: 5m
+        labels:
+          severity: critical 
+          type: server
+        annotations:
+          summary: Host unusual network throughput out (instance {{ $labels.instance }})
+          description: "Host network interfaces are probably sending too much data (> 10 GB/day)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
